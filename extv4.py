@@ -431,6 +431,5 @@ if uploaded_file is not None:
 else:
 
     st.info("⬆️ الرجاء رفع ملف TXT للبدء")
-Buy st.info | Spaceship
-Own st.info today. Secure checkout and guided transfer support. No hidden fees.
+
  
