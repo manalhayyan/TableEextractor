@@ -7,6 +7,7 @@ results = []
 current_shared = None
 current_query_lines = []
 
+# قراءة الملف كامل
 with open(filename, "r", encoding="utf-8") as f:
     for line in f:
         # البحث عن بداية shared block
@@ -19,9 +20,9 @@ with open(filename, "r", encoding="utf-8") as f:
             # بدء بلوك جديد
             current_shared = shared_match.group(1)
             current_query_lines = []
-        # جمع الأسطر التي تحتوي على Query
+        # جمع الأسطر التابعة للـ Query
         if 'Query=' in line:
-            # إزالة علامات اقتباس أو #lf / #tab لاحقًا
+            # إزالة بداية Query=
             query_line = line.split('Query=')[1].strip().strip('"')
             current_query_lines.append(query_line)
         elif current_shared:
@@ -33,11 +34,20 @@ if current_shared and current_query_lines:
     query_text = " ".join(current_query_lines)
     results.append((current_shared, query_text))
 
-# معالجة كل بلوك لاستخراج الجداول وتصنيفها
 final_results = []
 for idx, (shared_name, query_text) in enumerate(results, 1):
-    clean_query = re.sub(r'#\([a-z]+\)', ' ', query_text)
-    tables = re.findall(r'(?:FROM|JOIN|INNER JOIN|LEFT JOIN|RIGHT JOIN|FULL JOIN)\s+([A-Z0-9_]+\.[A-Z0-9_]+)', clean_query, re.IGNORECASE)
+    # تنظيف كل رموز #(lf), #(tab), #(anything)
+    clean_query = re.sub(r'#\([^\)]+\)', ' ', query_text)
+    clean_query = re.sub(r'\s+', ' ', clean_query)  # فراغ واحد فقط
+    
+    # البحث عن الجداول بعد FROM أو JOIN
+    tables = re.findall(
+        r'(?:FROM|JOIN|INNER JOIN|LEFT JOIN|RIGHT JOIN|FULL JOIN)\s+([\w\.]+)',
+        clean_query,
+        re.IGNORECASE
+    )
+    
+    # إزالة تكرارات
     seen = set()
     unique_tables = []
     for t in tables:
@@ -45,12 +55,15 @@ for idx, (shared_name, query_text) in enumerate(results, 1):
         if t_upper not in seen:
             seen.add(t_upper)
             unique_tables.append(t_upper)
+    
+    # تصنيف الجداول
     classified = defaultdict(list)
     for t in unique_tables:
         if t.upper().startswith('OMI.'):
             classified['جداول الإدارة'].append(t)
         else:
             classified['جداول المستودعات'].append(t)
+    
     final_results.append((idx, shared_name, unique_tables, classified))
 
 # طباعة النتائج
