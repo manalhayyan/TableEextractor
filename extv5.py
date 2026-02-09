@@ -39,23 +39,46 @@ if uploaded_file is not None:
     for shared_name, query_text in results:
         # إزالة علامات #(lf) و #(tab) وأي markers مشابهة
         clean_query = re.sub(r'#\([a-z]+\)', ' ', query_text)
-        tables = re.findall(r'(?:FROM|JOIN|INNER JOIN|LEFT JOIN|RIGHT JOIN|FULL JOIN)\s+([A-Z0-9_]+\.[A-Z0-9_]+)', clean_query, re.IGNORECASE)
-        for t in tables:
+
+        # ============================
+        # استخراج الجداول من FROM / JOIN
+        # ============================
+        tables = re.findall(
+            r'(?:FROM|JOIN|INNER JOIN|LEFT JOIN|RIGHT JOIN|FULL JOIN)\s+([A-Z0-9_]+\.[A-Z0-9_]+)',
+            clean_query,
+            re.IGNORECASE
+        )
+        
+        # ============================
+        # استخراج أسماء Views من dwh{[Name="..."]}
+        # ============================
+        views = re.findall(
+            r'\{\s*\[\s*Name\s*=\s*"([^"]+)"\s*\]\s*\}',
+            clean_query,
+            re.IGNORECASE
+        )
+
+        # دمج الجداول والفيوهات
+        all_items = tables + views
+
+        for t in all_items:
             t_upper = t.upper()
             if t_upper not in all_unique_tables:
                 all_unique_tables.add(t_upper)
-                if t_upper.startswith('OMI.'):
+                # تصنيف جداول الإدارة والمستودعات
+                if t_upper.startswith('OMI.') or t_upper.startswith('DP_OMI.'):
                     classified['جداول الإدارة'].append(t_upper)
                 else:
                     classified['جداول المستودعات'].append(t_upper)
 
+    # ============================
     # عرض النتائج
+    # ============================
     st.write(f"**عدد الجداول: {len(all_unique_tables)}**\n")
 
     for cat in ['جداول الإدارة', 'جداول المستودعات']:
         st.write(f"**{cat}:**")
-        if cat in classified:
-            for tbl in classified[cat]:
-                st.write(tbl)
+        if cat in classified and classified[cat]:
+            st.write("\n".join(classified[cat]))
         else:
             st.write("لا توجد جداول")
