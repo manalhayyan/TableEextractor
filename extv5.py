@@ -4,7 +4,7 @@ from collections import defaultdict
 
 st.set_page_config(page_title="تحليل الجداول", layout="wide")
 
-st.title("📊 محلل الجداول من ملفات SQL")
+st.title("📊 استخراج جداول التقارير وفق الهيكل الإداري والتقني ")
 
 # رفع الملف
 uploaded_file = st.file_uploader("اختر ملف txt", type=["txt"])
